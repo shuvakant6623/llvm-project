@@ -3024,8 +3024,13 @@ void MallocChecker::HandleLeak(SymbolRef Sym, ExplodedNode *N,
   assert(RS && "cannot leak an untracked symbol");
   AllocationFamily Family = RS->getAllocationFamily();
 
-  if (Family.Kind == AF_Alloca)
-    return;
+  if (Family.Kind == AF_Custom && Family.CustomName) {
+    StringRef Type = *Family.CustomName;
+
+    if (llvm::is_contained(SuppressLeakTypes, Type)) {
+      return;
+    }
+  }
 
   const Leak *Frontend = getRelevantFrontendAs<Leak>(Family);
   // Note that for leaks we don't add a sink when the relevant frontend is
@@ -4197,6 +4202,17 @@ void ento::registerInnerPointerCheckerAux(CheckerManager &Mgr) {
 
 void ento::registerDynamicMemoryModeling(CheckerManager &Mgr) {
   auto *Chk = Mgr.getChecker<MallocChecker>();
+
+  StringRef SuppressList =
+    mgr.getAnalyzerOptions().getCheckerStringOption(
+        "unix.DynamicMemoryModeling:SuppressLeakReportsFor");
+
+  SmallVector<StringRef, 8> Split;
+  SuppressList.split(Split, ',', -1, false);
+
+  for (StringRef S : Split) {
+    Chk->SuppressLeakTypes.push_back(S.trim().str());
+  }
   // FIXME: This is a "hidden" undocumented frontend but there are public
   // checker options which are attached to it.
   CheckerNameRef DMMName = Mgr.getCurrentCheckerName();

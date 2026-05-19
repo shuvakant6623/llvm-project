@@ -513,6 +513,12 @@ def DynamicMemoryModeling: Checker<"DynamicMemoryModeling">,
                   "true",
                   Released,
                   Hide>
+    CmdLineOption<String,
+                  "SuppressLeakReportsFor",
+                  "Comma-separated list of ownership types for which leak "
+                  "reports should be suppressed",
+                  "",
+                  InAlpha>
   ]>,
   Dependencies<[CStringModeling]>,
   Documentation<NotDocumented>,
